@@ -3,8 +3,36 @@ const DB_NAME = "DB_H5P_BOOK_SCORES";
 const DB_VERSION = 1;
 const STORE_NAME = "scores";
 
+let dbInstance = null;
+
 console.log("🔵 [STEP 1] Memulai script debug...");
 console.log("🔵 [STEP 2] Nama DB Baru:", DB_NAME);
+
+/* ================================
+   BUKA DATABASE (Versi Stabil)
+================================ */
+function openDB() {
+  return new Promise((resolve, reject) => {
+    if (dbInstance) return resolve(dbInstance);
+
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+
+    // Tambahkan onupgradeneeded agar struktur tetap terbentuk jika DB kosong
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME, { keyPath: "id", autoIncrement: true });
+      }
+    };
+
+    req.onsuccess = () => {
+      dbInstance = req.result;
+      resolve(dbInstance);
+    };
+    
+    req.onerror = () => reject("❌ DB gagal dibuka");
+  });
+}
 
 function debugOpenDB() {
   return new Promise((resolve, reject) => {
