@@ -1,12 +1,7 @@
 /* ================================
    KONFIGURASI (Sesuai dengan IDB sebelumnya)
 ================================ */
-const DB_NAME = "DB_H5P_BOOK_SCORES"; 
-const DB_VERSION = 1;
-const STORE_NAME = "scores";
-const SHEET_ENDPOINT = "https://script.google.com/macros/s/AKfycbyxr2bGcDPWbf8_WI2bhT-OYBUisukygUm9HiTSQxUeMnoMjmHwGSnK9Til4gPW6pBFrQ/exec";
-
-let dbInstance = null;
+const SHEET_ENDPOINT = "https://script.google.com/macros/s/AKfycbz4sVu15_2lzmgHAjZdQlIL1XYij-B1jJMXROlR4xRvnJESSDpU7IZg-F72KnZ33Z52tA/exec";
 
 /* ================================
    BUKA DATABASE (Versi Stabil)
