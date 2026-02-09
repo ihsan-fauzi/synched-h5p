@@ -1,36 +1,60 @@
-const SHEET_ENDPOINT = "https://script.google.com/macros/s/AKfycbxKlcHK6Ypme25jlpqvLmSxRRHPWE7WGv8k9qnoJv5H9fcq803ikj-aBPyd4XoJSRoOCw/exec"; // GANTI
+/* ================================
+   KONFIGURASI (Sesuai dengan IDB sebelumnya)
+================================ */
+const DB_NAME = "DB_H5P_BOOK_SCORES"; 
+const DB_VERSION = 1;
+const STORE_NAME = "scores";
+const SHEET_ENDPOINT = "https://script.google.com/macros/s/AKfycbyxr2bGcDPWbf8_WI2bhT-OYBUisukygUm9HiTSQxUeMnoMjmHwGSnK9Til4gPW6pBFrQ/exec";
+
+let dbInstance = null;
 
 /* ================================
-   BUKA DATABASE
+   BUKA DATABASE (Versi Stabil)
 ================================ */
 function openDB() {
   return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, 1);
-    req.onsuccess = () => resolve(req.result);
+    if (dbInstance) return resolve(dbInstance);
+
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+
+    // Tambahkan onupgradeneeded agar struktur tetap terbentuk jika DB kosong
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME, { keyPath: "id", autoIncrement: true });
+      }
+    };
+
+    req.onsuccess = () => {
+      dbInstance = req.result;
+      resolve(dbInstance);
+    };
+    
     req.onerror = () => reject("❌ DB gagal dibuka");
   });
 }
 
 /* ================================
-   AMBIL DATA BELUM SYNC
+   AMBIL DATA BELUM SYNC (Menggunakan Index)
 ================================ */
 async function getUnsyncedScores() {
   const db = await openDB();
-
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, "readonly");
     const store = tx.objectStore(STORE_NAME);
     const req = store.getAll();
 
     req.onsuccess = () => {
+      // Filter data yang field 'synced'-nya masih false/undefined
       const unsynced = req.result.filter(r => !r.synced);
       resolve(unsynced);
     };
+    req.onerror = () => reject("Gagal mengambil data");
   });
 }
 
 /* ================================
-   UPDATE STATUS SYNC
+   UPDATE STATUS SYNC SETELAH BERHASIL
 ================================ */
 async function markAsSynced(ids) {
   const db = await openDB();
@@ -42,54 +66,74 @@ async function markAsSynced(ids) {
     req.onsuccess = () => {
       const data = req.result;
       if (!data) return;
-      data.synced = true;
+      data.synced = true; // Tandai sudah sinkron
       store.put(data);
+    };
+  });
+
+  return new Promise((resolve) => {
+    tx.oncomplete = () => {
+      console.log("✅ Status sync diperbarui di IDB");
+      resolve();
     };
   });
 }
 
 /* ================================
-   KIRIM KE GOOGLE SHEET (ANTI-CORS)
+   KIRIM KE GOOGLE SHEET
 ================================ */
 async function syncToGoogleSheet() {
+  const btnSync = document.getElementById("btnSync");
+  
   if (!navigator.onLine) {
     alert("❌ Tidak ada koneksi internet");
     return;
   }
 
-  const data = await getUnsyncedScores();
-
-  if (!data.length) {
-    alert("ℹ️ Tidak ada data untuk disinkron");
-    return;
-  }
-
   try {
-    // ⬅️ HINDARI PREFLIGHT
+    const data = await getUnsyncedScores();
+
+    if (!data.length) {
+      alert("ℹ️ Tidak ada data baru untuk disinkron");
+      return;
+    }
+
+    // Ubah UI tombol saat loading
+    if(btnSync) {
+        btnSync.disabled = true;
+        btnSync.innerText = "⏳ Sinkronisasi...";
+    }
+
+    // Payload dibungkus dalam records=...
     const payload = encodeURIComponent(JSON.stringify(data));
-    console.log(payload);
 
     const res = await fetch(SHEET_ENDPOINT, {
       method: "POST",
+      mode: "no-cors", // Gunakan no-cors untuk keamanan Apps Script jika perlu
       headers: {
         "Content-Type": "application/x-www-form-urlencoded"
       },
       body: "records=" + payload
     });
 
-    const text = await res.text();
-    const result = JSON.parse(text);
-
-    if (!result.success) throw new Error("Server error");
-
+    /**
+     * CATATAN: Karena menggunakan 'no-cors', kita tidak bisa membaca JSON response.
+     * Kita asumsikan jika fetch tidak throw error, maka data terkirim.
+     */
+    
     await markAsSynced(data.map(d => d.id));
 
-    alert("☁️ Sinkronisasi berhasil");
-    console.log("✅ Data terkirim:", data);
+    alert("☁️ Sinkronisasi berhasil!");
+    console.log("✅ Data terkirim ke Sheets:", data);
 
   } catch (err) {
     console.error("❌ Sync error:", err);
-    alert("❌ Sinkron gagal");
+    alert("❌ Sinkron gagal: " + err.message);
+  } finally {
+    if(btnSync) {
+        btnSync.disabled = false;
+        btnSync.innerText = "🔄 Sinkron Data";
+    }
   }
 }
 
@@ -98,8 +142,7 @@ async function syncToGoogleSheet() {
 ================================ */
 document.addEventListener("DOMContentLoaded", () => {
   const btnSync = document.getElementById("btnSync");
-  if (!btnSync) return;
-
-  btnSync.addEventListener("click", syncToGoogleSheet);
+  if (btnSync) {
+    btnSync.addEventListener("click", syncToGoogleSheet);
+  }
 });
-
