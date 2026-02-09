@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="id">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Buku Interaktif</title>
+        <!-- <link rel="manifest" href="manifest.json"> -->
+    </head>
+    <body>
+
+        <h2>Buku Interaktif IPA</h2>
+        <div id="syncStatus"
+            style="font-size:14px;padding:6px 10px;
+                    border-radius:6px;
+                    background:#eee;
+                    display:inline-block;">
+        ⏳ Status belum diketahui
+        </div>
+
+        <div style="margin-top:16px; display:flex; gap:12px; flex-wrap:wrap;">
+            <button id="btnGetSummary" disabled>
+                Ambil Nilai Summary
+            </button>
+            
+            <button id="btnSave" disabled>
+                💾 Simpan Nilai
+            </button>
+
+            <button id="btnSync" disabled>
+                ☁️ Sinkron ke Server
+            </button>
+        </div>
+
+
+        <p id="status"></p>
+
+        <iframe id="h5p-frame" 
+        src="h5p/content.html" 
+        width="100%" 
+        height="600"
+        style="border:none;">
+        </iframe>
+
+        <script src="js/idb.js"></script>
+        <script src="js/sync.js"></script>
+        <script src="js/summary-reader.js"></script>
+
+        <!-- <script>
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('sw.js');
+            }
+
+            window.addEventListener("message", function (event) {
+            if (!event.data || !event.data.statement) return;
+
+            const statement = event.data.statement;
+
+            // filter hanya saat completed
+            if (statement.verb?.display?.en !== "completed") return;
+
+            const skor = statement.result?.score?.raw || 0;
+            const max = statement.result?.score?.max || 0;
+
+            const data = {
+                id: "H5P-" + Date.now(),
+                nama: localStorage.getItem("nama_siswa") || "Tanpa Nama",
+                skor: skor,
+                max: max,
+                waktu: new Date().toISOString(),
+                synced: false
+            };
+
+            localStorage.setItem("nilai_h5p", JSON.stringify(data));
+            alert("Nilai H5P tersimpan (offline).");
+            });
+        </script>
+        <script src="js/storage.js"></script>
+        <script src="js/h5p-listener.js"></script>
+        <script src="js/sync.js"></script> -->
+    </body>
+</html>
