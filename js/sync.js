@@ -67,6 +67,7 @@ async function syncToGoogleSheet() {
   try {
     // ⬅️ HINDARI PREFLIGHT
     const payload = encodeURIComponent(JSON.stringify(data));
+    console.log(payload);
 
     const res = await fetch(SHEET_ENDPOINT, {
       method: "POST",
